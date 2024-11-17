@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema(
 );
 
 //before we save our user we run this function
-userSchema.pre("save", async (next) => {
+userSchema.pre("save", async function (next) {
   // if password hasn't been changed call next
   if (!this.isModified("password")) return next();
 
