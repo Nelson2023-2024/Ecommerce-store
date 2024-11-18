@@ -54,28 +54,50 @@ router.get("/login", async (req, res) => {});
 
 router.post("/logout", async (req, res) => {
   try {
-    const refreshToken = req.cookies.refreshtoken;
+    // Log the cookies received
+    console.log("Cookies received:", req.cookies);
+
+    const refreshToken = req.cookies.refreshToken;
 
     if (refreshToken) {
-      const decoded = jwt.verify(
-        refreshToken,
-        process.env.REFRESH_TOKEN_SECRET
-      );
+      try {
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+        console.log(`Decoded userId: ${decoded.userId}`);
 
-      console.log(decoded);
-      await redis.del(`refresh_token:${decoded.userId}`);
+        // Construct the Redis key
+        const redisKey = `refresh_token:${decoded.userId}`;
+        console.log(`Redis Key: ${redisKey}`);
+
+        // Check if the refresh token exists in Redis
+        const tokenExists = await redis.exists(redisKey);
+        console.log(`Token exists: ${tokenExists}`);
+
+        if (tokenExists) {
+          // Delete the refresh token from Redis
+          await redis.del(redisKey);
+          console.log("Refresh token deleted from Redis");
+        } else {
+          console.log("Refresh token not found in Redis");
+        }
+      } catch (verifyError) {
+        console.log("Error verifying refresh token:", verifyError.message);
+      }
+    } else {
+      console.log("No refresh token found in cookies");
     }
 
-    res.clearCookie("accesstoken");
-    res.clearCookie("refreshtoken");
+    // Clear cookies
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+    console.log("Cookies cleared");
 
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Internal Server Error", error: error.message });
+    console.log("Error in logout route:", error.message);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 });
+
 
 export { router as authRoutes };
 
