@@ -1,7 +1,9 @@
 import { Router } from "express";
+import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
 import { generateTokens, setCookies } from "../utils/generateTokens.js";
 import { storeRefreshToken } from "../utils/storeRefreshToken.js";
+import { redis } from "../db/redis.js";
 
 const router = Router();
 
@@ -49,7 +51,31 @@ router.post("/signup", async (req, res) => {
   }
 });
 router.get("/login", async (req, res) => {});
-router.get("/logout", async (req, res) => {});
+
+router.post("/logout", async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshtoken;
+
+    if (refreshToken) {
+      const decoded = jwt.verify(
+        refreshToken,
+        process.env.REFRESH_TOKEN_SECRET
+      );
+
+      console.log(decoded);
+      await redis.del(`refresh_token:${decoded.userId}`);
+    }
+
+    res.clearCookie("accesstoken");
+    res.clearCookie("refreshtoken");
+
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
+  }
+});
 
 export { router as authRoutes };
 
