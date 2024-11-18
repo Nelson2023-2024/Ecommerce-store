@@ -50,7 +50,34 @@ router.post("/signup", async (req, res) => {
     res.status(500).json({ error: "Internal Server error" });
   }
 });
-router.get("/login", async (req, res) => {});
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if(!user) return res.status(400).json({error: "Email doesn't exist"})
+
+    if (user && (await user.comparePassword(password))) {
+      const { accessToken, refreshToken } = generateTokens(user._id);
+
+      await storeRefreshToken(user._id, refreshToken);
+
+      setCookies(res,accessToken, refreshToken)
+
+      res.status(200).json({
+        user: {
+          ...user._doc, //retun the whole user document
+          password: undefined, //keep the password field undefined
+        },
+        message: `${email} Loggedin successfully`,
+      });
+    }
+  } catch (error) {
+    console.log("Error in the login route", error.message);
+    res.status(500).json({ error: "Internal Server error" });
+  }
+});
 
 router.post("/logout", async (req, res) => {
   try {
@@ -61,7 +88,10 @@ router.post("/logout", async (req, res) => {
 
     if (refreshToken) {
       try {
-        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+        const decoded = jwt.verify(
+          refreshToken,
+          process.env.REFRESH_TOKEN_SECRET
+        );
         console.log(`Decoded userId: ${decoded.userId}`);
 
         // Construct the Redis key
@@ -94,10 +124,11 @@ router.post("/logout", async (req, res) => {
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.log("Error in logout route:", error.message);
-    res.status(500).json({ message: "Internal Server Error", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
   }
 });
-
 
 export { router as authRoutes };
 
