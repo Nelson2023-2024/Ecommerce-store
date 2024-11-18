@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { User } from "../models/user.model.js";
-import { generateTokens } from "../utils/generateTokens.js";
+import { generateTokens, setCookies } from "../utils/generateTokens.js";
 import { storeRefreshToken } from "../utils/storeRefreshToken.js";
 
 const router = Router();
@@ -29,7 +29,20 @@ router.post("/signup", async (req, res) => {
 
     //store refresh token to DB
     await storeRefreshToken(user._id, refreshToken);
-    res.status(201).json({ user, message: `${email} created successfully` });
+
+    //setcookies
+    setCookies(res, accessToken, refreshToken);
+
+    console.log(`accessToken:${accessToken}`);
+    console.log(`refreshToken:${refreshToken}`);
+
+    res.status(201).json({
+      user: {
+        ...user._doc, //retun the whole user document
+        password: undefined, //keep the password field undefined
+      },
+      message: `${email} created successfully`,
+    });
   } catch (error) {
     console.log("Error in the signup route", error.message);
     res.status(500).json({ error: "Internal Server error" });
@@ -39,3 +52,8 @@ router.get("/login", async (req, res) => {});
 router.get("/logout", async (req, res) => {});
 
 export { router as authRoutes };
+
+// user: {
+//         ...user._doc, //retun the whole user document
+//         password: undefined //keep the password field undefined
+//       }

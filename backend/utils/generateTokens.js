@@ -11,3 +11,20 @@ export const generateTokens = (userId) => {
 
   return { accessToken, refreshToken };
 };
+
+export const setCookies = (res, accessToken, refreshToken) => {
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true, // prevent XSS attacks
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict", //provent CSRF
+    maxAge: 15 * 60 * 1000, //15 minutes
+  });
+
+  //refreshtoken
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true, // prevent XSS attacks
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict", //provent CSRF
+    maxAge: 7 * 24 * 60 * 60 * 1000, //15 minutes
+  });
+};
