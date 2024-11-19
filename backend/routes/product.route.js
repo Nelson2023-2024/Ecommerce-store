@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { Product } from "../models/product.model.js";
+import { protectRoute } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
+router.use(protectRoute)
 //getallproducts
 router.get("/", async (req, res) => {
   try {
