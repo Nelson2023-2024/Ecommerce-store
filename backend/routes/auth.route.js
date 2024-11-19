@@ -56,14 +56,14 @@ router.post("/login", async (req, res) => {
 
     const user = await User.findOne({ email });
 
-    if(!user) return res.status(400).json({error: "Email doesn't exist"})
+    if (!user) return res.status(400).json({ error: "Email doesn't exist" });
 
     if (user && (await user.comparePassword(password))) {
       const { accessToken, refreshToken } = generateTokens(user._id);
 
       await storeRefreshToken(user._id, refreshToken);
 
-      setCookies(res,accessToken, refreshToken)
+      setCookies(res, accessToken, refreshToken);
 
       res.status(200).json({
         user: {
@@ -72,6 +72,8 @@ router.post("/login", async (req, res) => {
         },
         message: `${email} Loggedin successfully`,
       });
+    } else {
+      res.status(400).json({ message: "Invalid email or password" });
     }
   } catch (error) {
     console.log("Error in the login route", error.message);
@@ -127,6 +129,53 @@ router.post("/logout", async (req, res) => {
     res
       .status(500)
       .json({ message: "Internal Server Error", error: error.message });
+  }
+});
+
+//this will refesh the access token
+router.post("/refresh-token", async (req, res) => {
+  try {
+    //if the access token expires user creates a new one by providing a refreshtoken
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken)
+      return res
+        .status(401)
+        .json({ error: "Unauthorized", message: "No refresh Token Provided" });
+
+    //if the reresh tken exists
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+    //check if it matches what we have in our redis DB
+    const storedRefteshToken = await redis.get(
+      `refresh_token:${decoded.userId}`
+    );
+
+    //user is trying to cheat us
+    if (storedRefteshToken !== refreshToken)
+      return res.status(401).json({ message: "Invalid refresh token" });
+
+    //if the refresh token match generate a new access token
+    const accessToken = jwt.sign(
+      { userId: decoded.userId },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    //create the cookie
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true, // prevent XSS attacks
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict", // prevent CSRF
+      maxAge: 15 * 60 * 1000, // 15 minutesf
+    });
+
+    res.status(201).json({ message: "Access token refreshed successfully" });
+  } catch (error) {
+    console.log("Error in refreshToken controller", error.message);
+    res
+      .status(500)
+      .json({ message: "Internal server Error", error: error.message });
   }
 });
 
