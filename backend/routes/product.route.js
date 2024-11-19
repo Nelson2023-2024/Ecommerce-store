@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { Product } from "../models/product.model.js";
-import { protectRoute } from "../middleware/auth.middleware.js";
+import { adminRoute, protectRoute } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-router.use(protectRoute)
+router.use(protectRoute, adminRoute)
 //getallproducts
 router.get("/", async (req, res) => {
   try {
