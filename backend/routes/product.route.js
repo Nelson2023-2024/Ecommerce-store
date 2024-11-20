@@ -4,12 +4,11 @@ import { adminRoute, protectRoute } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-router.use(protectRoute, adminRoute)
-//getallproducts
-router.get("/", async (req, res) => {
+router.use( protectRoute, adminRoute)
+router.get("/",async (req, res) => {
   try {
     //get all products
-    const products = Product.find({});
+    const products = await Product.find({});
     res.status(200).json({ products });
   } catch (error) {
     console.log("Error in getallproducts route", error.message);
