@@ -71,7 +71,6 @@ router.get("/category/:category", async (req, res) => {
   }
 });
 
-
 router.use(protectRoute, adminRoute);
 
 router.get("/", async (req, res) => {
@@ -114,6 +113,30 @@ router.post("/create-product", async (req, res) => {
     res.status(500).json({ error: "Server error", error: error.message });
   }
 });
+
+//toglefeatured products
+router.patch("/:id", async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+
+    if (product) {
+      product.isFeatured = !product.isFeatured;
+
+      const updatedProduct = await product.save();
+
+      //update the cache redis
+      await updateFeaturedProductsCache();
+
+      res.status(200).json(updatedProduct);
+    } else {
+      res.status(404).json({ message: "Product not found" });
+    }
+  } catch (error) {
+    console.log("Error in toggleFeatutedProduct route", error.message);
+    res.status(500).json({ error: "Server error", error: error.message });
+  }
+});
+
 router.delete("/:id", async (req, res) => {
   try {
     const id = req.params.id;
