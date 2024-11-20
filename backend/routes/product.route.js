@@ -68,9 +68,38 @@ router.post("/create-product", async (req, res) => {
       category,
     });
 
-    res.status(201).json(product)
+    res.status(201).json(product);
   } catch (error) {
     console.log("Error in create-product route", error.message);
+    res.status(500).json({ error: "Server error", error: error.message });
+  }
+});
+router.delete("/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const product = await Product.findById(id);
+
+    if (!product) return res.status(404).json({ message: "product not found" });
+    // if the product is found
+
+    if (product.image) {
+      const publicId = product.image.split("/").pop().split(".")[0]; // get id of the image so that we can delete it
+
+      try {
+        await cloudinary.uploader.destroy(`products/${publicId}`)
+        console.log("deleted image form cloudinary")
+      } catch (error) {
+        console.log("Error deleting image from cloudinary", error.message)
+        
+      }
+    }
+
+    //delete it from DB
+    await Product.findByIdAndDelete(id)
+
+    res.status(200).json({message: "Product deleted successfully"})
+  } catch (error) {
+    console.log("Error in deleteproduct route", error.message);
     res.status(500).json({ error: "Server error", error: error.message });
   }
 });
