@@ -43,4 +43,8 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.post('/create-product', async (req,res) => {
+  
+})
+
 export { router as productRoutes };
