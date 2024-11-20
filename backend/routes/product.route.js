@@ -32,6 +32,46 @@ router.get("/featured", async (req, res) => {
   }
 });
 
+router.get("/recommendations", async (req, res) => {
+  try {
+    //find 3 different products randomly
+    const products = await Product.aggregate([
+      {
+        $sample: { size: 3 },
+      },
+      // for the 3 products populate the below
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          description: 1,
+          image: 1,
+          price: 1,
+        },
+      },
+    ]);
+    res.status(200).json(products);
+  } catch (error) {
+    console.log("Error in recommendations route", error.message);
+    res.status(500).json({ error: "Server error", error: error.message });
+  }
+});
+
+router.get("/category/:category", async (req, res) => {
+  try {
+    const { category } = req.params;
+
+    //find products where cegories is = to the params
+    const products = await Product.find({ category });
+
+    res.status(200).json(products);
+  } catch (error) {
+    console.log("Error in category route", error.message);
+    res.status(500).json({ error: "Server error", error: error.message });
+  }
+});
+
+
 router.use(protectRoute, adminRoute);
 
 router.get("/", async (req, res) => {
@@ -86,18 +126,17 @@ router.delete("/:id", async (req, res) => {
       const publicId = product.image.split("/").pop().split(".")[0]; // get id of the image so that we can delete it
 
       try {
-        await cloudinary.uploader.destroy(`products/${publicId}`)
-        console.log("deleted image form cloudinary")
+        await cloudinary.uploader.destroy(`products/${publicId}`);
+        console.log("deleted image form cloudinary");
       } catch (error) {
-        console.log("Error deleting image from cloudinary", error.message)
-        
+        console.log("Error deleting image from cloudinary", error.message);
       }
     }
 
     //delete it from DB
-    await Product.findByIdAndDelete(id)
+    await Product.findByIdAndDelete(id);
 
-    res.status(200).json({message: "Product deleted successfully"})
+    res.status(200).json({ message: "Product deleted successfully" });
   } catch (error) {
     console.log("Error in deleteproduct route", error.message);
     res.status(500).json({ error: "Server error", error: error.message });
