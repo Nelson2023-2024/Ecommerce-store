@@ -2,6 +2,7 @@ import { Router } from "express";
 import { redis } from "../db/redis.js";
 import { Product } from "../models/product.model.js";
 import { adminRoute, protectRoute } from "../middleware/auth.middleware.js";
+import cloudinary from "../db/cloudinary.js";
 
 const router = Router();
 
@@ -11,19 +12,20 @@ router.get("/featured", async (req, res) => {
     let featuredProducts = await redis.get("featured_products");
 
     //if the featured products are found display them
-    if(featuredProducts) return res.status(200).json(JSON.parse(featuredProducts))
+    if (featuredProducts)
+      return res.status(200).json(JSON.parse(featuredProducts));
 
     //if not in redis fetch it from MONGODB
     //.lean() is gonna return plain js object instead on MongoDb documnent which is good for perfomance
-    featuredProducts = await Product.find({isFeatured: true}).lean()
+    featuredProducts = await Product.find({ isFeatured: true }).lean();
 
-    if(!featuredProducts) return res.status(404).json({message: "No featured product found"})
+    if (!featuredProducts)
+      return res.status(404).json({ message: "No featured product found" });
 
     //if there is update our caches as well sore in redis for future quick access
-    await redis.set("featured_products", JSON.stringify(featuredProducts))
+    await redis.set("featured_products", JSON.stringify(featuredProducts));
 
-    res.status(200).json(featuredProducts)
-
+    res.status(200).json(featuredProducts);
   } catch (error) {
     console.log("Error in featured route", error.message);
     res.status(500).json({ error: "Server error", error: error.message });
@@ -43,8 +45,34 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post('/create-product', async (req,res) => {
-  
-})
+router.post("/create-product", async (req, res) => {
+  try {
+    const { name, description, price, image, category } = req.body;
+
+    let cloudinaryResponse = null;
+
+    if (image) {
+      //upload the image and put it into a folder called products
+      cloudinaryResponse = await cloudinary.uploader.upload(image, {
+        folder: "products",
+      });
+    }
+
+    const product = await Product.create({
+      name,
+      description,
+      image: cloudinaryResponse?.secure_url
+        ? cloudinaryResponse?.secure_url
+        : "",
+      price,
+      category,
+    });
+
+    res.status(201).json(product)
+  } catch (error) {
+    console.log("Error in create-product route", error.message);
+    res.status(500).json({ error: "Server error", error: error.message });
+  }
+});
 
 export { router as productRoutes };
