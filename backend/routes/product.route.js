@@ -3,6 +3,7 @@ import { redis } from "../db/redis.js";
 import { Product } from "../models/product.model.js";
 import { adminRoute, protectRoute } from "../middleware/auth.middleware.js";
 import cloudinary from "../db/cloudinary.js";
+import { updateFeaturedProductsCache } from "../utils/updateFeaturedProductsCache.js";
 
 const router = Router();
 
