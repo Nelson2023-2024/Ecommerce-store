@@ -1,12 +1,30 @@
 import { Router } from "express";
 import { protectRoute } from "../middleware/auth.middleware.js";
+import { Product } from "../models/product.model.js";
 
 const router = Router();
 
 router.use(protectRoute);
 
 //get all products in cart
-router.get("/", async (req, res) => {});
+router.get("/", async (req, res) => {
+  try {
+    const products = await Product.find({ _id: { $in: req.user.cartItems } });
+
+    //add quantity for each product
+    const cartItems = products.map((product) => {
+      const item = req.user.cartItems.find(
+        (cartItem) => cartItem.id === product.id
+      );
+      return { ...product.toJSON(), quantity: item.quantity };
+    });
+
+    res.status(200).json(cartItems)
+  } catch (error) {
+    console.log(`Error in get all products router`, error.message);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+});
 
 //addToCart
 router.post("/", async (req, res) => {
@@ -71,14 +89,12 @@ router.put("/:id", async (req, res) => {
         await user.save();
 
         return res.status(200).json(user.cartItems);
-      }else{
-        existingItem.quantity = quantity
-        await user.save()
-        res.status(200).json(user.cartItems)
+      } else {
+        existingItem.quantity = quantity;
+        await user.save();
+        res.status(200).json(user.cartItems);
       }
-
-    }
-    else res.status(404).json({message: "Product not found"})
+    } else res.status(404).json({ message: "Product not found" });
   } catch (error) {
     console.log(`Error in update quantity route`, error.message);
     res.status(500).json({ message: "Server Error", error: error.message });
