@@ -33,7 +33,25 @@ router.post("/", async (req, res) => {
 });
 
 //removeallfromcart
-router.delete("/", async (req, res) => {});
+router.delete("/", async (req, res) => {
+  try {
+    const { productId } = req.body;
+
+    //value cames from protectRoute
+    const user = req.user;
+
+    if (!productId) user.cartItems = [];
+    else
+      user.cartItems = user.cartItems.filter((item) => item.id !== productId);
+
+    //save the changes to the DB
+    await user.save();
+    res.status(200).json(user.cartItems);
+  } catch (error) {
+    console.log(`Error in removeallfromcart router`, error.message);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+});
 
 //update quantity
 router.put("/", async (req, res) => {});
