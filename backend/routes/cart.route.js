@@ -19,6 +19,16 @@ router.get("/", async (req, res) => {
       return { ...product.toJSON(), quantity: item.quantity };
     });
 
+    // SIMPLER CODE
+    // / Populate the cartItems with product details
+    // const userWithCart = await User.findById(req.user._id).populate('cartItems.product');
+
+    // // Format the response to include product details and quantity
+    // const cartItems = userWithCart.cartItems.map(item => ({
+    //   ...item.product.toJSON(),
+    //   quantity: item.quantity,
+    // }));
+
     res.status(200).json(cartItems)
   } catch (error) {
     console.log(`Error in get all products router`, error.message);
